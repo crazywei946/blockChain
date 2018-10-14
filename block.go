@@ -39,7 +39,7 @@ func (this *Block)SetHash() []byte {
 	}
 
 	//拼接需要进行hash的字符串
-	data:=bytes.Join(temp,[]byte{})
+	data:=bytes.Join(temp,[]byte(""))
 
 	//进行hash运算
 
