@@ -4,6 +4,7 @@ import (
 	"time"
 	"bytes"
 	"crypto/sha256"
+	"encoding/gob"
 )
 
 //定义一个块结构，包含以下结构
@@ -25,6 +26,47 @@ type Block struct {
 
 	Data []byte //交易数据
 }
+
+
+//给block绑定编码方法实现结构体转字节
+func (block *Block)Serializa()[]byte {
+
+	//创建一个buffer用来存储编码后的字节
+	var buffer bytes.Buffer
+
+	//创建一个编码器
+	encoder:=gob.NewEncoder(&buffer)
+	//使用编码器进行编码
+	err:=encoder.Encode(block)
+	if err != nil {
+		panic("编码失败")
+	}
+
+	return buffer.Bytes()
+
+}
+
+//定义方法进行解码
+func Deserializa(data []byte)*Block{
+
+	//创建一个解码其
+	var block *Block
+	var buffer bytes.Buffer
+
+	//将字节写入buffer
+	_,err:=buffer.Write(data)
+	if err!=nil {
+		panic("字节子恶如buffer失败")
+	}
+	//创建一个解码器
+	decoder:=gob.NewDecoder(&buffer)
+	//对字节进行解码到block中
+	decoder.Decode(&block)
+	return block
+}
+
+
+
 
 //创建一个方法用来设置区块的hash值
 func (this *Block)SetHash() []byte {
@@ -65,7 +107,12 @@ func NewBlock(data string, preh []byte) *Block {
 		Data:       []byte(data),
 	}
 	
-	block.Hash=block.SetHash()
+	//block.Hash=block.SetHash()
+	pow:=NewProofOfWork(&block)
+	hash,nonce:=pow.Run()
+
+	block.Hash=hash
+	block.Nonce=nonce
 
 	return &block
 
@@ -73,8 +120,8 @@ func NewBlock(data string, preh []byte) *Block {
 
 //定义一个产生创世区块的函数
 
-func GenesisBlock(data string, preh []byte)*Block {
+func GenesisBlock(data string)*Block {
 
-	return NewBlock(data,preh)
+	return NewBlock(data,[]byte{})
 
 }
