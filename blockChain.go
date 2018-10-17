@@ -1,6 +1,9 @@
 package main
 
-import "github.com/boltdb/bolt"
+import (
+	"github.com/boltdb/bolt"
+	"fmt"
+)
 
 //定义一个区块链结构体
 type BlockChain struct {
@@ -40,7 +43,7 @@ func NewBlcokChain() *BlockChain {
 
 			//往表中添加入区块
 			//1.创始区块的hash作为key,value为区块
-			gensisBlock := GenesisBlock(genensisInfo)
+			gensisBlock := GenesisBlock(genensisInfo, "开天劈地")
 			bucket.Put(gensisBlock.Hash, gensisBlock.Serializa())
 
 			//2.用常量l最为key，value为lastBlockHash
@@ -66,13 +69,13 @@ func NewBlcokChain() *BlockChain {
 }
 
 //创建一个方法给blockchian中添加区块
-func (bc *BlockChain) AddBlock(data string) {
+func (bc *BlockChain) AddBlock(txs []*Tranction) {
 
 	//获得最后一个区块的hash
 	preHash := bc.tail
 
 	//创建新区块
-	block := NewBlock(data, preHash)
+	block := NewBlock(txs, preHash)
 
 	//打开数据库中的表
 	//更新数据库表中最后dehash值
@@ -90,5 +93,79 @@ func (bc *BlockChain) AddBlock(data string) {
 		bc.tail = block.Hash
 		return nil
 	})
+
+}
+
+//给blockChain绑定方法查询指定地址的可用交易余额
+func (bc *BlockChain) FindUTXO(addr string) ([]TXOutput) {
+
+	//遍历所有区块，拿到所有的交易
+	//拿到迭代器进行遍历
+	it := bc.NewIterator()
+	var block *Block
+
+	var UTXO []TXOutput                   //未花费交易的集合
+
+	spentUTXO := make(map[string][]int64) //已经花费的交易集合
+
+	for {
+		block = it.Next()
+		//遍历所有交易，拿到所有的outputs
+		for _, tx := range block.Trancations {
+
+
+			OUTPUT:
+			//遍历outputs，对又有outputs进行判断
+			for i, out := range tx.TXOutputs {
+				//1.判断该output是否已经被花费掉
+				//看该out是否在所有的txinput中，如果在则表示已经被花费
+				//遍历已经花费的交易
+				if spentUTXO[string(tx.TXID)] != nil {
+					//如果当前交易的id在已花费的交易集合中，则表示需要对当前交易中output进行判断是否存在
+					//如果当前交易的id不在已花费的交易集合中，则跳过，不对当前交易中的output进行判断
+					for _, indexArry := range spentUTXO[string(tx.TXID)] {
+
+							//找到当前交易id所对应的map时，遍历map的值，判断output的索引是否和map中的值一致，一致则表示此output已经花费掉
+								if int64(i)==indexArry {
+									//相等则进行下一次循环
+									continue OUTPUT
+								}
+
+					}
+				}
+
+				//2.output未被花费掉，判断该output是否属于指定的地址
+				if out.PubkyeHash == addr {
+					//3.将符合条件的output放入集合中返回
+					UTXO = append(UTXO, out)
+				}
+
+			}
+
+			//判断该是不是创世交易，如果不是才进行遍历
+			if tx.IscoinBase() {
+				//遍历交易拿到地址对应的所有的input，并加入到一个map[交易ID][]int64集合中
+				//key为input的TXid，value为input的index
+				for _, input := range tx.TXInputs {
+					if input.sig == addr {
+						spentUTXO[string(input.Txid)] = append(spentUTXO[string(input.Txid)], input.Index)
+
+					}
+				}
+
+			}else {
+				fmt.Println("这是一个创世交易")
+			}
+
+		}
+
+		if len(block.PreHash)==0 {
+			fmt.Println("区块遍历完成")
+			break
+		}
+
+	}
+
+	return UTXO
 
 }

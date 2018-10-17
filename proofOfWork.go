@@ -47,7 +47,7 @@ func (pow *ProofOfWork) Run() ([]byte, uint64) {
 			Uint64ToBytes(pow.Block.Difficulty),
 			Uint64ToBytes(pow.Block.TimeStamp),
 			pow.Block.PreHash,
-			pow.Block.Data,
+			//pow.Block.Data, //不在拼接交易数据，交易存在merkroot中
 			pow.Block.MerkRoot,
 		}
 		data := bytes.Join(tempBlock, []byte(""))

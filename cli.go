@@ -12,7 +12,9 @@ type CLI struct {
 
 const Usage  =
 	`addBlock --data DATA "add a block"
-    printChain "print block Chain"`
+    printChain "print block Chain"
+	getbance --addr DATA "查询指定地址的余额"`
+
 
 //定义方法对命令行参数进行解析控制执行相应的操作
 func (cli *CLI)Run()  {
@@ -20,6 +22,7 @@ func (cli *CLI)Run()  {
 	//获得命令行参数并且解析
 	args:=os.Args
 
+	
 	if len(args)<2 {
 
 		//给出提示信息
@@ -37,6 +40,18 @@ func (cli *CLI)Run()  {
 			cli.AddBlock(args[3])
 
 			fmt.Println("添加区块成功")
+
+		}else {
+			fmt.Println("命令行格式为:")
+			fmt.Println(Usage)
+			return
+		}
+
+	case "getbance":
+		//判断命令行参数是否符合要求
+		if len(args)==4 && args[2]=="--addr"{
+			//执行查询制定地址的余额
+			cli.GetBance(args[3])
 
 		}else {
 			fmt.Println("命令行格式为:")
