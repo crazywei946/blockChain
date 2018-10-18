@@ -4,10 +4,11 @@ import (
 	"bytes"
 	"encoding/gob"
 	"crypto/sha256"
+	"fmt"
 )
 
 //定义挖矿奖励
-const reward  = 12.5
+const reward  = 50.0
 
 //定义一个交易结构提
 type Tranction struct {
@@ -27,7 +28,7 @@ type TXInput struct {
 
 	Index int64 //此inout对应的output在交易中的索引值
 
-	sig string //签名，暂时以地址代替，表示该交易来源于谁
+	Sig string //签名，暂时以地址代替，表示该交易来源于谁
 
 }
 
@@ -88,11 +89,64 @@ func (tx *Tranction)IscoinBase()bool  {
 	//output长度为1
 	leninput:=len(tx.TXInputs)
 	if leninput==1 && tx.TXInputs[0].Index==-1 {
-		return false
+		return true
 	}
 
-	return true
+	return false
 
 }
+
+//实现创建一个普通的交易
+func NewTrancation (from ,to string, amount float64,bc *BlockChain) *Tranction {
+
+	//创建一个utxo map用来接受需要的output
+	utxo:=make(map[string][]int64)
+	var total float64
+	//调用方法找到from的满足amount的所有有效outputs
+	utxo,total=bc.FindNeedUTXO(from,amount)
+	//判断找到的余额是否足够
+	if total < amount{
+		fmt.Println("余额不足请充值")
+		return nil
+	}
+
+	//var tx Tranction
+
+	//构建inputs
+	var txinputs []TXInput
+	var txoutputs []TXOutput
+
+	for txid,outIndexs:=range utxo{
+		for _,index:=range outIndexs {
+
+			//将utxo中的内容添加到txinput中，判断total是否足够转账
+
+			in:=TXInput{[]byte(txid),index,from}
+			txinputs=append(txinputs, in)
+
+
+		}
+	}
+
+	//构建outputs
+	out:=TXOutput{amount,to}
+	txoutputs=append(txoutputs, out)
+
+	if total>amount{
+
+		//找零
+		out=TXOutput{total-amount,from}
+		txoutputs=append(txoutputs, out)
+
+	}
+
+	tx:=Tranction{[]byte{},txinputs,txoutputs}
+
+	//设置txId
+	tx.SetTXID()
+	return &tx
+
+}
+
 
 

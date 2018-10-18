@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 	"fmt"
+	"strconv"
 )
 
 //定义一个命令控制器
@@ -13,7 +14,10 @@ type CLI struct {
 const Usage  =
 	`addBlock --data DATA "add a block"
     printChain "print block Chain"
-	getbance --addr DATA "查询指定地址的余额"`
+	getbance --addr DATA "查询指定地址的余额"
+	send from to amount data miner
+
+`
 
 
 //定义方法对命令行参数进行解析控制执行相应的操作
@@ -58,6 +62,26 @@ func (cli *CLI)Run()  {
 			fmt.Println(Usage)
 			return
 		}
+
+	case "send":
+		if len(args)==7 {
+			from:=args[2]
+			to:=args[3]
+			amount,_:=strconv.ParseFloat(args[4],64)
+			data:=args[5]
+			miner:=args[6]
+
+			//调用函数进行转账操作
+			cli.Send(from,to,amount,data,miner)
+
+			fmt.Println("转账成功")
+
+
+		}else {
+			fmt.Println("转账格式不正确")
+			fmt.Println(Usage)
+		}
+
 
 	case "printChain":
 		//表示要printChain

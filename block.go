@@ -4,6 +4,7 @@ import (
 	"time"
 	"bytes"
 		"encoding/gob"
+	"crypto/sha256"
 )
 
 //定义一个块结构，包含以下结构
@@ -137,6 +138,17 @@ func GenesisBlock(data string,addr string)*Block {
 func (block *Block)SetMerkroot()  {
 
 	//TODO
+	//简单实现梅克尔根的字符拼接，不做二叉树处理
+	//拼接所有交易的TXID
+	var temp []byte
+	for _,tx:=range block.Trancations{
 
+		temp=append(temp, tx.TXID...)
+
+	}
+
+	//对自己数组进行hash
+	hash:=sha256.Sum256(temp)
+	block.MerkRoot=hash[:]
 
 }

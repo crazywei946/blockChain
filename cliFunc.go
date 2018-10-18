@@ -34,6 +34,28 @@ func (cli *CLI)AddBlock(data string)  {
 	//TODO
 }
 
+//执行转账功能
+func (cli *CLI)Send(from,to string,amount float64,data string,addr string)  {
+
+	//创建一笔普通交易，然后新增区块
+	//调用创建交易的方法，创建一笔普通交易
+	tx:=NewTrancation(from,to,amount,cli.bc)
+	//判断交易是否为空
+	if tx == nil {
+		fmt.Println("无效的交易")
+		return
+	}
+
+	//调用创世交易方法，产生coinbase交易
+	coinTx:=CoinBaseTX(data,addr)
+
+	//创建交易数组，传入Addblock中
+	txs:=[]*Tranction{coinTx,tx}
+
+	cli.bc.AddBlock(txs)
+}
+
+
 //3.执行查询余额的方法
 func (cli *CLI)GetBance(data string) {
 
