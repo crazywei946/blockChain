@@ -7,6 +7,10 @@ import (
 	"crypto/sha256"
 )
 
+
+//定义一个敞亮表示版本号
+const version  = 0
+
 //定义一个块结构，包含以下结构
 type Block struct {
 	Version uint64 //版本号
@@ -98,7 +102,7 @@ func NewBlock(txs []*Tranction, preh []byte) *Block {
 	//创建一个区块对象，并且赋值
 	block := Block{
 
-		Version:    0,
+		Version:    version,
 		PreHash:    preh,
 		MerkRoot:   []byte{},
 		TimeStamp:  uint64(time.Now().Unix()),

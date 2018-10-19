@@ -14,6 +14,8 @@ func (cli *CLI)PriteInfo()  {
 		fmt.Printf("========================\n\n")
 		fmt.Printf("Version:%v\n", block.Version)
 		fmt.Printf("Nonce:%v\n", block.Nonce)
+		fmt.Printf("MerkRoot:%v\n", block.MerkRoot)
+		fmt.Printf("Difficulty:%v\n", block.Difficulty)
 		fmt.Printf("preHash:%x\n", block.PreHash)
 		fmt.Printf("Hash:%x\n", block.Hash)
 		//fmt.Printf("旷工的余额为:%v\n", block.Trancations[0].TXOutputs[0].Value)
@@ -70,5 +72,24 @@ func (cli *CLI)GetBance(data string) {
 
 	//查询余额成功
 	fmt.Printf("%s的余额为:%f\n\n",data,total)
+
+}
+
+//创建钱包地址
+func (cli *CLI)CreatWallet()  {
+
+	ws:=NewWallets()
+	addr:=ws.CreatWallet()
+
+	fmt.Println("创建的钱包地址为:",addr)
+
+}
+
+//绑定函数获得所有钱包的地址
+func (cli *CLI)GetAllAddress()  {
+
+	ws:=NewWallets()
+
+	ws.GetAllAddr()
 
 }

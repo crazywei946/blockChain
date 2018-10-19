@@ -248,86 +248,69 @@ func (bc *BlockChain) FindNeedUTXO(addr string, amount float64) (map[string][]in
 
 }
 
-func (bc *BlockChain) FindUTXOTransactions(address string) []*Tranction {
-	var txs []*Tranction //存储所有包含utxo交易集合
-	//我们定义一个map来保存消费过的output，key是这个output的交易id，value是这个交易中索引的数组
-	//map[交易id][]int64
-	spentOutputs := make(map[string][]int64)
-
-	//创建迭代器
-	it := bc.NewIterator()
-
-	for {
-		//1.遍历区块
-		block := it.Next()
-
-		//2. 遍历交易
-		for _, tx := range block.Trancations {
-			//fmt.Printf("current txid : %x\n", tx.TXID)
-
-		OUTPUT:
-		//3. 遍历output，找到和自己相关的utxo(在添加output之前检查一下是否已经消耗过)
-		//	i : 0, 1, 2, 3
-			for i, output := range tx.TXOutputs {
-				//fmt.Printf("current index : %d\n", i)
-				//在这里做一个过滤，将所有消耗过的outputs和当前的所即将添加output对比一下
-				//如果相同，则跳过，否则添加
-				//如果当前的交易id存在于我们已经表示的map，那么说明这个交易里面有消耗过的output
-
-				//map[2222] = []int64{0}
-				//map[3333] = []int64{0, 1}
-				//这个交易里面有我们消耗过得output，我们要定位它，然后过滤掉
-				if spentOutputs[string(tx.TXID)] != nil {
-					for _, j := range spentOutputs[string(tx.TXID)] {
-						//[]int64{0, 1} , j : 0, 1
-						if int64(i) == j {
-							//fmt.Printf("111111")
-							//当前准备添加output已经消耗过了，不要再加了
-							continue OUTPUT
-						}
-					}
-				}
-
-				//这个output和我们目标的地址相同，满足条件，加到返回UTXO数组中
-				if output.PubkyeHash == address {
-					//fmt.Printf("222222")
-					//UTXO = append(UTXO, output)
-
-					//!!!!!重点
-					//返回所有包含我的outx的交易的集合
-					txs = append(txs, tx)
-
-					//fmt.Printf("333333 : %f\n", UTXO[0].Value)
-				} else {
-					//fmt.Printf("333333")
-				}
-			}
-
-			//如果当前交易是挖矿交易的话，那么不做遍历，直接跳过
-
-			if !tx.IscoinBase() {
-				//4. 遍历input，找到自己花费过的utxo的集合(把自己消耗过的标示出来)
-				for _, input := range tx.TXInputs {
-					//判断一下当前这个input和目标（李四）是否一致，如果相同，说明这个是李四消耗过的output,就加进来
-					if input.Sig == address {
-						//spentOutputs := make(map[string][]int64)
-						//indexArray := spentOutputs[string(input.TXid)]
-						//indexArray = append(indexArray, input.Index)
-						spentOutputs[string(input.Txid)] = append(spentOutputs[string(input.Txid)], input.Index)
-						//map[2222] = []int64{0}
-						//map[3333] = []int64{0, 1}
-					}
-				}
-			} else {
-				//fmt.Printf("这是coinbase，不做input遍历！")
-			}
-		}
-
-		if len(block.PreHash) == 0 {
-			break
-			fmt.Printf("区块遍历完成退出!")
-		}
-	}
-
-	return txs
-}
+//对UTXO代码进行优化
+//抽取一个公用函数，找到可用的outputs所对应的trancations
+//func (bc *BlockChain) FindUTXOTrancations(addr string) []*Tranction {
+//
+//	//遍历区块
+//	it := bc.NewIterator()
+//
+//	var UTXOTrancastions []*Tranction
+//
+//	spendUTXO := make(map[string][]int64)
+//
+//	for {
+//		block := it.Next()
+//		//遍历交易
+//		for _, tx := range block.Trancations {
+//
+//			OUTPUT:
+//			//遍历outputs
+//			for i, output := range tx.TXOutputs {
+//
+//				//判断输出是否有效
+//				//TODO
+//				if spendUTXO[string(tx.TXID)]!=nil {
+//
+//					for _,index:=range spendUTXO[string(tx.TXID)]{
+//						//如果当前output的索引值在spend中，则表示此output已经被花费掉，继续下一个output判断
+//						if int64(i)==index {
+//							continue OUTPUT
+//						}
+//
+//					}
+//
+//				}
+//
+//				//判断输出是否属于制定地址
+//				if output.PubkyeHash == addr {
+//
+//					//将此地址属于的tx加入到交易数组集合中
+//					UTXOTrancastions = append(UTXOTrancastions, tx)
+//
+//				}
+//
+//			}
+//
+//			//判断是否是创世区块，不是则不需要判断txinput
+//			if !tx.IscoinBase() {
+//
+//				//遍历inputs，将所有inputs放入到一个map中map[txid][]int64
+//				for _, input := range tx.TXInputs {
+//
+//					spendUTXO[string(input.Txid)] = append(spendUTXO[string(input.Txid)], input.Index)
+//
+//				}
+//			}
+//
+//		}
+//
+//		if len(block.PreHash) == 0 {
+//			//区块遍历完成
+//			break
+//		}
+//	}
+//
+//	return UTXOTrancastions
+//
+//}
