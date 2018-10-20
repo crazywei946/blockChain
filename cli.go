@@ -11,7 +11,8 @@ type CLI struct {
 	bc *BlockChain //由于需要操作区块连所以结构体中包含区块连
 }
 
-const Usage = `addBlock --data DATA "add a block"
+const Usage = `
+	addBlock --data DATA "add a block"
     printChain "print block Chain"
 	getbance --addr DATA "查询指定地址的余额"
 	send from to amount data miner

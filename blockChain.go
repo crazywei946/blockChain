@@ -3,7 +3,8 @@ package main
 import (
 	"github.com/boltdb/bolt"
 	"fmt"
-)
+	"bytes"
+	)
 
 //定义一个区块链结构体
 type BlockChain struct {
@@ -43,10 +44,10 @@ func NewBlcokChain() *BlockChain {
 
 			//往表中添加入区块
 			//1.创始区块的hash作为key,value为区块
-			gensisBlock := GenesisBlock(genensisInfo, "老王")
+			gensisBlock := GenesisBlock(genensisInfo, "13AgpBzgscHpULMMgf1NopV46aUaZ7B4tT")
 			bucket.Put(gensisBlock.Hash, gensisBlock.Serializa())
 
-			fmt.Println("************************")
+			//fmt.Println("************************")
 			//2.用常量l最为key，value为lastBlockHash
 			bucket.Put([]byte("l"), gensisBlock.Hash)
 
@@ -98,7 +99,7 @@ func (bc *BlockChain) AddBlock(txs []*Tranction) {
 }
 
 //给blockChain绑定方法查询指定地址的可用交易余额
-func (bc *BlockChain) FindUTXO(addr string) ([]TXOutput) {
+func (bc *BlockChain) FindUTXO(pubkeyHash []byte) ([]TXOutput) {
 
 	//遍历所有区块，拿到所有的交易
 	//拿到迭代器进行遍历
@@ -135,7 +136,7 @@ func (bc *BlockChain) FindUTXO(addr string) ([]TXOutput) {
 				}
 
 				//2.output未被花费掉，判断该output是否属于指定的地址
-				if out.PubkyeHash == addr {
+				if bytes.Equal(out.PubkeyHash,pubkeyHash) {
 					//3.将符合条件的output放入集合中返回
 					UTXO = append(UTXO, out)
 				}
@@ -147,7 +148,10 @@ func (bc *BlockChain) FindUTXO(addr string) ([]TXOutput) {
 				//遍历交易拿到地址对应的所有的input，并加入到一个map[交易ID][]int64集合中
 				//key为input的TXid，value为input的index
 				for _, input := range tx.TXInputs {
-					if input.Sig == addr {
+					//对input.pubkey进行hash
+					pubkHash:=HashPublick(input.Pubkey)
+
+					if bytes.Equal(pubkHash,pubkeyHash){
 						spentUTXO[string(input.Txid)] = append(spentUTXO[string(input.Txid)], input.Index)
 
 					}
@@ -169,7 +173,7 @@ func (bc *BlockChain) FindUTXO(addr string) ([]TXOutput) {
 }
 
 //给blockChain绑定方法查询制定地址所需要的交易余额，并且返回余额总数
-func (bc *BlockChain) FindNeedUTXO(addr string, amount float64) (map[string][]int64, float64) {
+func (bc *BlockChain) FindNeedUTXO(pubkeyHash []byte, amount float64) (map[string][]int64, float64) {
 
 	//找到所需要的UTXO
 	needUTXO := make(map[string][]int64)
@@ -201,7 +205,10 @@ func (bc *BlockChain) FindNeedUTXO(addr string, amount float64) (map[string][]in
 				}
 
 				//判断out是否属于指定的地址
-				if out.PubkyeHash == addr {
+				//if out.PubkyeHash == pubkeyHash {
+				if bytes.Equal(out.PubkeyHash,pubkeyHash) {
+
+					fmt.Println("********")
 
 					if total < amount {
 
@@ -213,6 +220,8 @@ func (bc *BlockChain) FindNeedUTXO(addr string, amount float64) (map[string][]in
 					}
 					if total >= amount {
 						//结束遍历，直接返回needutxo和total
+
+						fmt.Println("===",total)
 						return needUTXO, total
 
 					}
@@ -225,7 +234,10 @@ func (bc *BlockChain) FindNeedUTXO(addr string, amount float64) (map[string][]in
 				//而找到指定地址所有的inputs，添加到一个固定集合中map[TXID][index]
 				for _, input := range tx.TXInputs {
 
-					if input.Sig == addr {
+					//对input中的pubkey进行hash
+					inpubkHash:=HashPublick(input.Pubkey)
+
+					if bytes.Equal(pubkeyHash,inpubkHash) {
 						spentInputs[string(input.Txid)] = append(spentInputs[string(input.Txid)], input.Index)
 					}
 

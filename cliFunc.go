@@ -59,10 +59,12 @@ func (cli *CLI)Send(from,to string,amount float64,data string,addr string)  {
 
 
 //3.执行查询余额的方法
-func (cli *CLI)GetBance(data string) {
+func (cli *CLI)GetBance(addr string) {
+
+	pubkeyHash:=GetPubkeyHashByAddr(addr)
 
 	//调用FindUTXO方法，获得余额
-	utxo:=cli.bc.FindUTXO(data)
+	utxo:=cli.bc.FindUTXO(pubkeyHash)
 
 	total:=0.0
 	for _,out:=range utxo{
@@ -71,7 +73,7 @@ func (cli *CLI)GetBance(data string) {
 	}
 
 	//查询余额成功
-	fmt.Printf("%s的余额为:%f\n\n",data,total)
+	fmt.Printf("%s的余额为:%f\n\n",addr,total)
 
 }
 

@@ -5,6 +5,7 @@ import (
 	"encoding/gob"
 	"crypto/sha256"
 	"fmt"
+	"github.com/btcsuite/btcutil/base58"
 )
 
 //定义挖矿奖励
@@ -28,8 +29,10 @@ type TXInput struct {
 
 	Index int64 //此inout对应的output在交易中的索引值
 
-	Sig string //签名，暂时以地址代替，表示该交易来源于谁
+	//Sig string //签名，暂时以地址代替，表示该交易来源于谁
+	Signature []byte  //签名
 
+	Pubkey []byte //公钥
 }
 
 
@@ -37,7 +40,39 @@ type TXInput struct {
 type TXOutput struct {
 	Value float64 //输出的金额
 
-	PubkyeHash string //验证签名，先以string代替，转账给谁
+	//PubkyeHash string //验证签名，先以string代替，转账给谁
+
+	PubkeyHash []byte //签名验证，由地址反推得出
+}
+
+//定义函数实现通过addr获得公钥hash
+func GetPubkeyHashByAddr(addr string)[]byte  {
+
+	//1.对地址进行58解码
+	hash:=base58.Decode(addr)
+	if len(hash)<4 {
+		fmt.Println("无效的地址")
+		return []byte{}
+	}
+
+	//2.截取hash[1:21]得到公钥hash返回
+	pubkeyHash:=hash[1:len(hash)-4]
+
+	return pubkeyHash
+
+}
+
+
+//创建一个函数实现新建一个创世交易的output
+func NewOutput(value float64,addr string) TXOutput {
+
+	//对传递过来的addr进行base58解码，截取得到需要的pubkeyhash
+	pubkeyHash:=GetPubkeyHashByAddr(addr)
+
+
+	txout:=TXOutput{value,pubkeyHash}
+
+	return txout
 
 }
 
@@ -68,9 +103,10 @@ func CoinBaseTX(data string,addr string) *Tranction {
 	var inputs []TXInput
 	var outputs []TXOutput
 
-	txin:=TXInput{[]byte{},-1,data}
+	txin:=TXInput{[]byte{},-1,nil,[]byte(data)}
 
-	txout:=TXOutput{reward,addr}
+	txout:=NewOutput(reward,addr)
+	//txout:=TXOutput{reward,addr}
 	inputs=append(inputs, txin)
 	outputs=append(outputs, txout)
 
@@ -99,11 +135,31 @@ func (tx *Tranction)IscoinBase()bool  {
 //实现创建一个普通的交易
 func NewTrancation (from ,to string, amount float64,bc *BlockChain) *Tranction {
 
+	//需要通过地址获得到秘钥对
+	//1.获得钱包容器
+	ws:=NewWallets()
+
+	//2.取得地址所对应的秘钥对
+	wallet:= ws.WalletMap[from]
+	if wallet==nil {
+		fmt.Println("没有找到地址所对应的钱包")
+		return nil
+	}
+	//privatekey:=wallet.PrivateKey
+
+	pubkey:=wallet.PulickKey
+
+	//对公钥进行hash
+	pubkeyHash:=HashPublick(pubkey)
+
+
 	//创建一个utxo map用来接受需要的output
 	utxo:=make(map[string][]int64)
 	var total float64
 	//调用方法找到from的满足amount的所有有效outputs
-	utxo,total=bc.FindNeedUTXO(from,amount)
+	utxo,total=bc.FindNeedUTXO(pubkeyHash,amount)
+
+	fmt.Println(total)
 	//判断找到的余额是否足够
 	if total < amount{
 		fmt.Println("余额不足请充值")
@@ -121,7 +177,8 @@ func NewTrancation (from ,to string, amount float64,bc *BlockChain) *Tranction {
 
 			//将utxo中的内容添加到txinput中，判断total是否足够转账
 
-			in:=TXInput{[]byte(txid),index,from}
+			//需要传递公钥
+			in:=TXInput{[]byte(txid),index,nil,pubkey}
 			txinputs=append(txinputs, in)
 
 
@@ -129,13 +186,18 @@ func NewTrancation (from ,to string, amount float64,bc *BlockChain) *Tranction {
 	}
 
 	//构建outputs
-	out:=TXOutput{amount,to}
+	out:=NewOutput(amount,to)
+
+	//out:=TXOutput{amount,to}
 	txoutputs=append(txoutputs, out)
 
 	if total>amount{
 
 		//找零
-		out=TXOutput{total-amount,from}
+
+		//需要公钥hash
+		//out=TXOutput{total-amount,from}
+		out=NewOutput(total-amount,from)
 		txoutputs=append(txoutputs, out)
 
 	}
